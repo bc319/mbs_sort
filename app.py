@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 import io
 
 st.set_page_config(page_title="Z-Score Transformer", layout="centered")
-st.title("📈 Z-Score Sample Transformer")
+st.title("\U0001F4C8 Z-Score Sample Transformer")
 
-uploaded_file = st.file_uploader("📤 Upload an Excel file (.xlsx)", type=["xlsx"])
+uploaded_file = st.file_uploader("\U0001F4C4 Upload an Excel file (.xlsx)", type=["xlsx"])
 
 if uploaded_file:
     df_raw = pd.read_excel(uploaded_file, header=None, skiprows=8)
@@ -28,8 +28,8 @@ if uploaded_file:
             st.stop()
 
         # 🎯 User inputs
-        new_mean = st.slider("🎯 New Mean", min_value=74.0, max_value=76.0, value=75.0, step=0.1)
-        target_pct_above_80 = st.slider("🎯 % of values above 80", 0.20, 0.30, 0.25)
+        new_mean = st.slider("\U0001F3AF New Mean", min_value=74.0, max_value=76.0, value=75.0, step=0.1)
+        target_pct_above_80 = st.slider("\U0001F3AF % of values above 80", 0.20, 0.30, 0.25)
 
         # 🔢 Z-score transformation
         mean_orig = np.mean(sample_numeric)
@@ -61,7 +61,7 @@ if uploaded_file:
         buffer = io.BytesIO()
         df_out.to_excel(buffer, index=False, engine='openpyxl')
         st.download_button(
-            label="📥 Download Transformed Excel File",
+            label="\U0001F4E5 Download Transformed Excel File",
             data=buffer.getvalue(),
             file_name="transformed_sample.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -90,14 +90,14 @@ if uploaded_file:
         ax.bar(grade_labels, grade_counts, color=[colors[g] for g in grade_labels], edgecolor='black')
         ax.set_xlabel("Grade")
         ax.set_ylabel("Number of Students")
-        ax.set_title("📊 Distribution of Adjusted Marks")
+        ax.set_title("\U0001F4CA Distribution of Adjusted Marks")
         st.pyplot(fig)
 
         # 📈 Stats
         mean_adj = adjusted_numeric.mean()
         pct_H1 = grade_percents['H1']
 
-        st.write(f"**📈 Mean of Adjusted Marks:** {mean_adj:.2f}")
+        st.write(f"**\U0001F4C8 Mean of Adjusted Marks:** {mean_adj:.2f}")
         st.write(f"**🔥 Percentage of H1s:** {pct_H1:.2f}%")
 
         # 📋 Summary Table
@@ -108,11 +108,11 @@ if uploaded_file:
         })
 
         # ✅ Corrected Totals
+        non_numeric = sample_col.apply(lambda x: not pd.api.types.is_number(x)).sum()
         total_results = len(sample_numeric)
-        non_numeric = len(sample_col) - total_results
         total_students = total_results + non_numeric
 
-        st.markdown("### 📋 Summary of Overall Results")
+        st.markdown("### \U0001F4CB Summary of Overall Results")
         st.dataframe(summary_df)
 
         st.markdown(f"""
