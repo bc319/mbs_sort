@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import io
 
 st.set_page_config(page_title="Z-Score Transformer", layout="centered")
-st.title("\U0001F4C8 Z-Score Sample Transformer")
+st.title("\U0001F4C8 MBS Grade Adjustment App")
 
 uploaded_file = st.file_uploader("\U0001F4C4 Upload an Excel file (.xlsx)", type=["xlsx"])
 
