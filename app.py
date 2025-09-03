@@ -71,14 +71,23 @@ if uploaded_file:
         adjusted_numeric = pd.to_numeric(new_sample_full, errors='coerce').dropna()
         grade_bins = [0, 50, 65, 70, 75, 80, 100]
         grade_labels = ['F', 'P', 'H3', 'H2B', 'H2A', 'H1']
-        colors = ['#d62728', '#9467bd', '#8c564b', '#e377c2', '#1f77b4', '#ff7f0e']
+
+        # Color map:
+        colors = {
+            'F': '#d9eaf5',
+            'P': '#c0d8ec',
+            'H3': '#a5c5e4',
+            'H2B': '#7fb2db',
+            'H2A': '#1f77b4',     # Deep blue
+            'H1': '#ff7f0e'       # Orange
+        }
 
         grade_series = pd.cut(adjusted_numeric, bins=grade_bins, labels=grade_labels, right=False)
         grade_counts = grade_series.value_counts().reindex(grade_labels, fill_value=0)
         grade_percents = (grade_counts / len(adjusted_numeric) * 100).round(2)
 
         fig, ax = plt.subplots(figsize=(8, 4))
-        ax.bar(grade_labels, grade_counts, color=colors, edgecolor='black')
+        ax.bar(grade_labels, grade_counts, color=[colors[g] for g in grade_labels], edgecolor='black')
         ax.set_xlabel("Grade")
         ax.set_ylabel("Number of Students")
         ax.set_title("📊 Distribution of Adjusted Marks")
@@ -98,9 +107,10 @@ if uploaded_file:
             "% of Class": grade_percents.values
         })
 
-        total_results = grade_counts.sum()
+        # ✅ Corrected Totals
+        total_results = len(sample_numeric)
         non_numeric = len(sample_col) - total_results
-        total_students = len(sample_col)
+        total_students = total_results + non_numeric
 
         st.markdown("### 📋 Summary of Overall Results")
         st.dataframe(summary_df)
