@@ -11,17 +11,14 @@ st.title("📈 Z-Score Sample Transformer")
 uploaded_file = st.file_uploader("📤 Upload an Excel file (.xlsx)", type=["xlsx"])
 
 if uploaded_file:
-    # Read from Excel, starting at row 9 (skip 8 rows), no header
     df_raw = pd.read_excel(uploaded_file, header=None, skiprows=8)
 
     if len(df_raw.columns) <= 10:
         st.error("❌ Column K not found.")
     else:
-        sample_col = df_raw.iloc[:, 10]  # Column K = index 10
-
+        sample_col = df_raw.iloc[:, 10]
         st.write("📄 Raw Column K Data", sample_col)
 
-        # Convert to numeric; retain mask of valid values
         numeric_sample = pd.to_numeric(sample_col, errors='coerce')
         valid_mask = ~numeric_sample.isna()
         sample_numeric = numeric_sample[valid_mask].values
@@ -30,11 +27,8 @@ if uploaded_file:
             st.error("❌ Column K has no numeric values.")
             st.stop()
 
-        # User inputs
-        new_mean = st.number_input("🎯 New Mean", min_value=74.0, max_value=76.0, value=75.0)
-        target_pct_above_80 = st.slider("🎯 % of values above 80", 0.20, 0.30, 0.25)
+        new_mean = st.slider("🎯 New Mean", min_value=74.0, max_value=76.0, value=75.0, step=0.1)
 
-        # Z-score transformation
         mean_orig = np.mean(sample_numeric)
         std_orig = np.std(sample_numeric)
         z_scores = (sample_numeric - mean_orig) / std_orig
@@ -43,14 +37,12 @@ if uploaded_file:
         required_std = (80 - new_mean) / z_target
         adjusted_values = np.clip(z_scores * required_std + new_mean, 0, 100)
 
-        # Build final columns (same length as input, preserving non-numeric)
         zscore_full = pd.Series([None] * len(sample_col))
         new_sample_full = pd.Series([None] * len(sample_col))
         zscore_full[valid_mask] = z_scores
         new_sample_full[valid_mask] = adjusted_values
-        new_sample_full[~valid_mask] = sample_col[~valid_mask]  # Copy text cells
+        new_sample_full[~valid_mask] = sample_col[~valid_mask]
 
-        # Final output DataFrame
         df_out = pd.DataFrame({
             "Original Sample": sample_col,
             "Z-score": zscore_full,
@@ -60,7 +52,6 @@ if uploaded_file:
         st.write("✅ Transformed Output")
         st.dataframe(df_out)
 
-        # Excel download
         buffer = io.BytesIO()
         df_out.to_excel(buffer, index=False, engine='openpyxl')
         st.download_button(
@@ -70,36 +61,55 @@ if uploaded_file:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        # 📊 Histogram and summary
+        # 📊 Grade histogram
         adjusted_numeric = pd.to_numeric(new_sample_full, errors='coerce').dropna()
 
-        # Histogram bins
-        bins = [0, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
-        counts, edges = np.histogram(adjusted_numeric, bins=bins)
+        # Grade bins and labels
+        grade_bins = [0, 50, 65, 70, 75, 80, 100]
+        grade_labels = ['F', 'P', 'H3', 'H2B', 'H2A', 'H1']
+        colors = ['#d62728', '#9467bd', '#8c564b', '#e377c2', '#1f77b4', '#ff7f0e']  # H1 = orange
 
-        # Colors: orange if bin midpoint > 80
-        bar_colors = ['#1f77b4' if (edges[i] + edges[i+1]) / 2 <= 80 else '#ff7f0e'
-                      for i in range(len(counts))]
+        # Assign grades
+        grade_series = pd.cut(adjusted_numeric, bins=grade_bins, labels=grade_labels, right=False)
 
-        # Plot
+        # Count per grade
+        grade_counts = grade_series.value_counts().reindex(grade_labels, fill_value=0)
+        grade_percents = (grade_counts / len(adjusted_numeric) * 100).round(1)
+
+        # Plot histogram
         fig, ax = plt.subplots(figsize=(8, 4))
-        ax.bar(range(len(counts)), counts, color=bar_colors, width=1.0,
-               edgecolor='black', align='center')
-
-        # Bin labels
-        ax.set_xticks(range(len(counts)))
-        ax.set_xticklabels([f"{int(edges[i])}-{int(edges[i+1])}" for i in range(len(edges)-1)],
-                           rotation=45)
-        ax.set_xlabel("Adjusted Value Ranges")
-        ax.set_ylabel("Frequency")
-        ax.set_title("📊 Distribution of Adjusted Values")
-
-        # Summary stats
-        pct_above_80 = (adjusted_numeric > 80).mean() * 100
-        mean_adj = adjusted_numeric.mean()
-
-        st.write(f"**📈 Mean of Adjusted Values:** {mean_adj:.2f}")
-        st.write(f"**🔥 Percentage Above 80:** {pct_above_80:.2f}%")
-
-        # Show plot
+        ax.bar(grade_labels, grade_counts, color=colors, edgecolor='black')
+        ax.set_xlabel("Grade")
+        ax.set_ylabel("Number of Students")
+        ax.set_title("📊 Distribution of Adjusted Marks")
         st.pyplot(fig)
+
+        # 📈 Summary stats
+        mean_adj = adjusted_numeric.mean()
+        pct_H1 = grade_percents['H1']
+
+        st.write(f"**📈 Mean of Adjusted Marks:** {mean_adj:.2f}")
+        st.write(f"**🔥 Percentage of H1s:** {pct_H1:.1f}%")
+
+        # 📋 Summary table
+        summary_df = pd.DataFrame({
+            "Grade": grade_labels,
+            "Number": grade_counts.values,
+            "% of Class": grade_percents.values
+        })
+
+        total_results = grade_counts.sum()
+        non_numeric = len(sample_col) - total_results
+        total_students = len(sample_col)
+
+        st.markdown("### 📋 Summary of Overall Results")
+        st.dataframe(summary_df)
+
+        # Add total rows
+        st.markdown(f"""
+        **Total Results:** {total_results}  
+        **Non-numeric:** {non_numeric}  
+        **Students:** {total_students}  
+        **Mean:** {mean_adj:.2f}  
+        **Standard Deviation:** {adjusted_numeric.std():.2f}  
+        """)
